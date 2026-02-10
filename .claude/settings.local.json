@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(if not exist \"docs\\\\plans\" mkdir \"docs\\\\plans\")",
+      "Bash(npm run build)"
+    ]
+  }
+}

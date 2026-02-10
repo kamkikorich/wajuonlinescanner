@@ -1,26 +1,45 @@
 # WajuScanner-Online 🚀
 
-A full-stack document scanner application with OCR capabilities, built as a modern alternative to CamScanner. Transform your physical documents into digital text with advanced image processing and AI-powered text recognition.
+A full-stack mobile-first document scanner application with multi-page support, ID card scanning, and OCR capabilities. Transform your physical documents into digital PDFs with advanced image processing and AI-powered text recognition.
 
 ## ✨ Features
 
-- 📸 **Camera Capture**: Use your device camera to capture documents instantly
-- 📁 **File Upload**: Upload images from your gallery
-- ✂️ **Smart Cropping**: Intuitive image cropping with visual interface
-- 🔍 **OCR Processing**: Advanced text recognition using Tesseract.js
-- 🤖 **AI Enhancement**: Optional AI-powered text refinement via DeepSeek API
-- 📄 **PDF Export**: Export scanned documents to PDF format
-- 📋 **Text Copy**: Copy extracted text to clipboard
-- 📤 **Share**: Share results via Web Share API
-- 📱 **Mobile Responsive**: Optimized for mobile devices
-- 🎨 **Modern UI**: Clean, intuitive interface with Tailwind CSS
+### 📄 Document Mode
+- **Multi-page Scanning**: Scan unlimited pages to create complete documents
+- **Page Navigation**: Easily navigate through scanned pages with thumbnails
+- **Page Management**: Delete or reorder pages before exporting
+- **Working Image Filters**:
+  - **Original**: Raw captured image
+  - **Magic Color**: Enhanced contrast and brightness for better readability
+  - **B&W**: Black & white conversion for clean documents
+  - **Grayscale**: Professional grayscale output
+
+### 🆔 ID Card Mode
+- **Front + Back Capture**: Scan both sides in one seamless flow
+- **Color/Grayscale Options**: Choose output style for your ID card
+- **Combined PDF Export**: Front and back saved in a single PDF page
+
+### 🔍 OCR Processing
+- **Advanced Text Recognition**: Powered by Tesseract.js
+- **AI Enhancement**: Optional AI-powered text refinement via DeepSeek API
+
+### 📤 Export & Share
+- **PDF Export**: Generate professional PDFs with all pages
+- **Share Function**: Share OCR results via Web Share API
+- **Copy Text**: Quick copy text to clipboard
+
+### 💾 Additional Features
+- **Scan History**: View recent scans in home screen
+- **Local Storage**: Scan history persists between sessions
+- **Mobile-First UI**: Optimized for touch interactions
+- **Camera & Gallery**: Capture from camera or upload existing images
 
 ## 🛠️ Tech Stack
 
 ### Frontend
 - **React 19** with Vite for fast development
 - **Tailwind CSS** for modern styling
-- **React Image Crop** for image cropping functionality
+- **React Image Crop** for precise image cropping
 - **jsPDF** for PDF generation
 
 ### Backend
@@ -48,7 +67,7 @@ A full-stack document scanner application with OCR capabilities, built as a mode
    ```bash
    # Copy environment template
    cp server/.env.example server/.env.local
-   
+
    # Edit the .env.local file with your API keys
    # Get DeepSeek API key from: https://platform.deepseek.com/
    ```
@@ -58,7 +77,7 @@ A full-stack document scanner application with OCR capabilities, built as a mode
    # Install frontend dependencies
    cd camscanner-clone
    npm install
-   
+
    # Install backend dependencies
    cd ../server
    npm install
@@ -74,7 +93,7 @@ A full-stack document scanner application with OCR capabilities, built as a mode
    ```bash
    # Start backend server
    cd server && node index.js
-   
+
    # Start frontend (in new terminal)
    cd camscanner-clone && npm run dev
    ```
@@ -100,17 +119,24 @@ A full-stack document scanner application with OCR capabilities, built as a mode
 
 ## 🚀 Usage
 
-1. **Capture or Upload**: Use camera or upload an image containing text
-2. **Crop**: Adjust the crop area to focus on the document
-3. **Process**: Click "Process with OCR" to extract text
-4. **Export**: Save as PDF or copy the extracted text
+### Document Scan Mode
 
-## 🔒 Security Features
+1. Select **Scan Document** from home screen
+2. Capture or upload your first page
+3. Crop the image if needed
+4. Click **Add Page** to add to document
+5. Repeat for all pages
+6. Apply filters as needed (Original, Magic Color, B&W, Grayscale)
+7. Click **Process with OCR** to extract text
+8. Click **Export PDF** to download your document
 
-- **File validation**: Only image files are accepted
-- **Size limits**: Configurable file size restrictions
-- **Environment protection**: Sensitive data in environment variables
-- **CORS configuration**: Proper cross-origin setup
+### ID Card Scan Mode
+
+1. Select **Scan ID Card** from home screen
+2. Capture the **FRONT** side
+3. Capture the **BACK** side
+4. Choose **Color** or **Grayscale** output
+5. Click **Export ID Card PDF** to download
 
 ## 🎯 OCR Performance Tips
 
@@ -127,6 +153,23 @@ A full-stack document scanner application with OCR capabilities, built as a mode
 - Edge
 
 **Note**: Camera functionality requires HTTPS in production environments.
+
+## 🔄 Version History
+
+### v2.0 - Mobile-First Update
+- ✅ Multi-page scanning support
+- ✅ ID Card/Passport scan mode (Front + Back)
+- ✅ Working image filters (Original, Magic Color, B&W, Grayscale)
+- ✅ Improved mobile-first UI
+- ✅ Page navigation and management
+- ✅ Scan history with localStorage
+- ✅ Enhanced camera capture quality
+
+### v1.0 - Initial Release
+- Single page scanning
+- Basic OCR processing
+- PDF export
+- Web Share API integration
 
 ## 🤝 Contributing
 
