@@ -261,19 +261,18 @@ export function AppProvider({ children }) {
     setCameraError(null);
 
     try {
-      // Check if getUserMedia is supported
+      // Secure context required: camera only works over HTTPS or localhost
+      if (typeof window !== 'undefined' && !window.isSecureContext) {
+        throw Object.assign(new Error('Secure context required'), { name: CAMERA_ERRORS.SECURITY });
+      }
+
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API not supported in this browser');
       }
 
-      // IMPORTANT: Set showCamera to TRUE first so the video element is rendered
-      // This fixes the race condition where videoRef.current is null
-      setShowCamera(true);
-
-      // Wait for next tick to ensure React has rendered the video element
-      await new Promise(resolve => setTimeout(resolve, 50));
-
-      // Try rear camera first with ideal constraints
+      // CRITICAL: Call getUserMedia immediately while the button click is still the "user gesture".
+      // On iOS Safari and some mobile browsers, delaying (e.g. after setState/await) can cause
+      // permission to be denied or camera not to start.
       const constraints = {
         video: {
           facingMode: { ideal: 'environment' },
@@ -287,13 +286,19 @@ export function AppProvider({ children }) {
       try {
         stream = await navigator.mediaDevices.getUserMedia(constraints);
       } catch (err) {
-        // If rear camera fails, try any camera
         if (err.name === CAMERA_ERRORS.OVERCONSTRAINED || err.name === CAMERA_ERRORS.NOT_FOUND) {
-          console.log('Rear camera not available, trying any camera...');
-          stream = await navigator.mediaDevices.getUserMedia({
-            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-            audio: false
-          });
+          try {
+            stream = await navigator.mediaDevices.getUserMedia({
+              video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+              audio: false
+            });
+          } catch (err2) {
+            try {
+              stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+            } catch (err3) {
+              throw err;
+            }
+          }
         } else {
           throw err;
         }
@@ -301,27 +306,27 @@ export function AppProvider({ children }) {
 
       streamRef.current = stream;
 
-      // Now video element should exist since showCamera is true
+      // Now show camera UI and attach stream to video element
+      setShowCamera(true);
+
+      // Wait for React to render the video element
+      await new Promise(resolve => setTimeout(resolve, 100));
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-
-        // iOS Safari: needs playsInline and muted for autoplay
         videoRef.current.playsInline = true;
         videoRef.current.muted = true;
         videoRef.current.setAttribute('playsinline', 'true');
         videoRef.current.setAttribute('muted', 'true');
 
-        // Wait for video to be ready
         await new Promise((resolve, reject) => {
           videoRef.current.onloadedmetadata = () => {
             videoRef.current.play().then(resolve).catch(reject);
           };
           videoRef.current.onerror = reject;
-          // Timeout fallback
           setTimeout(resolve, 1000);
         });
 
-        // Check if torch is supported
         const track = stream.getVideoTracks()[0];
         if (track && track.getCapabilities) {
           const capabilities = track.getCapabilities();
@@ -330,25 +335,23 @@ export function AppProvider({ children }) {
 
         setCameraPermission('granted');
       } else {
-        // If videoRef is still null, something went wrong
-        console.warn('Video element not available after setting showCamera');
-        // Try once more after a longer delay
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise(resolve => setTimeout(resolve, 150));
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          videoRef.current.playsInline = true;
+          videoRef.current.muted = true;
           await videoRef.current.play().catch(() => {});
         }
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
       setCameraError(getCameraErrorMessage(err));
-      setShowCamera(false); // Hide camera UI on error
+      setShowCamera(false);
 
       if (err.name === CAMERA_ERRORS.NOT_ALLOWED) {
         setCameraPermission('denied');
       }
 
-      // Show user-friendly error
       alert(getCameraErrorMessage(err));
     }
   };

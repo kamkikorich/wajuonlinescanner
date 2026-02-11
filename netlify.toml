@@ -26,7 +26,7 @@
   status = 200
   force = false
 
-# Security headers
+# Security headers – allow camera for same origin (required for scanner on HTTPS)
 [[headers]]
   for = "/*"
   [headers.values]
@@ -34,7 +34,9 @@
     X-Content-Type-Options = "nosniff"
     X-XSS-Protection = "1; mode=block"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow camera for this origin (getUserMedia). Legacy + modern.
     Permissions-Policy = "camera=(self), geolocation=(), microphone=()"
+    Feature-Policy = "camera 'self'"
 
 # Cache static assets
 [[headers]]
