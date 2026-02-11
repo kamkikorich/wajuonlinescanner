@@ -23,7 +23,7 @@ const getCameraErrorMessage = (error) => {
     case CAMERA_ERRORS.NOT_ALLOWED:
       return 'Camera access denied. Please allow camera access in your browser settings and try again.';
     case CAMERA_ERRORS.NOT_FOUND:
-      return 'No camera found. Please connect a camera or use file upload instead.';
+      return 'No camera found. Check that a camera is connected and allowed in your browser or OS settings, or use file upload instead.';
     case CAMERA_ERRORS.NOT_READABLE:
       return 'Camera is already in use by another application. Please close other apps using the camera.';
     case CAMERA_ERRORS.OVERCONSTRAINED:
@@ -271,37 +271,29 @@ export function AppProvider({ children }) {
       }
 
       // CRITICAL: Call getUserMedia immediately while the button click is still the "user gesture".
-      // On iOS Safari and some mobile browsers, delaying (e.g. after setState/await) can cause
-      // permission to be denied or camera not to start.
-      const constraints = {
-        video: {
-          facingMode: { ideal: 'environment' },
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        },
-        audio: false
-      };
-
+      // Request with minimal constraints first so desktop (no "environment" camera) and strict
+      // devices don't get NotFoundError; then prefer better quality if available.
       let stream;
       try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints);
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       } catch (err) {
-        if (err.name === CAMERA_ERRORS.OVERCONSTRAINED || err.name === CAMERA_ERRORS.NOT_FOUND) {
-          try {
-            stream = await navigator.mediaDevices.getUserMedia({
-              video: { width: { ideal: 1280 }, height: { ideal: 720 } },
-              audio: false
-            });
-          } catch (err2) {
-            try {
-              stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-            } catch (err3) {
-              throw err;
-            }
-          }
-        } else {
-          throw err;
-        }
+        throw err;
+      }
+
+      // Prefer rear camera + higher res on devices that support it (e.g. mobile)
+      try {
+        const better = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: 'environment' },
+            width: { ideal: 1920 },
+            height: { ideal: 1080 }
+          },
+          audio: false
+        });
+        stream.getTracks().forEach((t) => t.stop());
+        stream = better;
+      } catch (_) {
+        // Keep current stream
       }
 
       streamRef.current = stream;
