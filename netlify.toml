@@ -13,36 +13,24 @@
 [functions]
   directory = "netlify/api"
 
-# Redirect API calls to serverless functions
-[[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
-  status = 200
+# Critical: Serve static files with correct MIME types
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Content-Type = "application/javascript"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
-# SPA fallback for PWA - exclude vite-pwa files
-[[redirects]]
-  from = "/sw.js"
-  to = "/sw.js"
-  status = 200
-  force = false
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
-[[redirects]]
-  from = "/manifest.webmanifest"
-  to = "/manifest.webmanifest"
-  status = 200
-  force = false
-
-[[redirects]]
-  from = "/workbox-*.js"
-  to = "/workbox-*.js"
-  status = 200
-  force = false
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-  force = false
+[[headers]]
+  for = "/workbox-*.js"
+  [headers.values]
+    Content-Type = "application/javascript"
+    Cache-Control = "public, max-age=0, must-revalidate"
 
 # Security headers – allow camera for same origin (required for scanner on HTTPS)
 [[headers]]
@@ -82,21 +70,37 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Service worker and manifest
-[[headers]]
-  for = "/sw.js"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
+# Redirect API calls to serverless functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
 
-[[headers]]
-  for = "/manifest.webmanifest"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
+# CRITICAL: Exclude PWA files from SPA redirects (must come BEFORE catch-all)
+# Use force: true to ensure these files are served correctly
+[[redirects]]
+  from = "/sw.js"
+  to = "/sw.js"
+  status = 200
+  force = true
 
-[[headers]]
-  for = "/workbox-*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
+[[redirects]]
+  from = "/manifest.webmanifest"
+  to = "/manifest.webmanifest"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/workbox-*.js"
+  to = "/workbox-*.js"
+  status = 200
+  force = true
+
+# SPA fallback - MUST be LAST
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
 
 # Function headers
 [[headers]]
