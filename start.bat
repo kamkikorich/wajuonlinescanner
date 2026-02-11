@@ -1,23 +1,13 @@
 @echo off
-echo ===================================================
-echo   Starting WajuScanner-Online System
-echo ===================================================
-
-echo Starting Backend Server...
-cd server
-start "WajuScanner Backend" cmd /k "node index.js"
-cd ..
-
-echo Starting Frontend Application...
-cd camscanner-clone
-start "WajuScanner Frontend" cmd /k "npm run dev"
-cd ..
-
+echo Starting Backend...
+start "WajuScanner Backend" cmd /k "cd server && node index.js"
+echo Starting Frontend...
+start "WajuScanner Frontend" cmd /k "cd camscanner-clone && npm run dev"
+echo Application started!
+echo Frontend: http://localhost:5173
+echo Backend: http://localhost:5000
 echo.
-echo ===================================================
-echo   System Started!
-echo   Frontend: http://localhost:5173
-echo   Backend:  http://localhost:5000
-echo ===================================================
+echo For network access, use your computer's IP address (e.g. http://192.168.x.x:5173)
+ipconfig | findstr "IPv4"
 echo.
 pause

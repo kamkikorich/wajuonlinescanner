@@ -7,6 +7,36 @@ import { processImageComplete, terminateWorker, getOCRStatus } from '../utils/oc
 
 const AppContext = createContext(null);
 
+// Camera error types for better error handling
+const CAMERA_ERRORS = {
+  NOT_ALLOWED: 'NotAllowedError',
+  NOT_FOUND: 'NotFoundError',
+  NOT_READABLE: 'NotReadableError',
+  OVERCONSTRAINED: 'OverconstrainedError',
+  SECURITY: 'SecurityError',
+  ABORT: 'AbortError',
+};
+
+// Get user-friendly error message
+const getCameraErrorMessage = (error) => {
+  switch (error.name) {
+    case CAMERA_ERRORS.NOT_ALLOWED:
+      return 'Camera access denied. Please allow camera access in your browser settings and try again.';
+    case CAMERA_ERRORS.NOT_FOUND:
+      return 'No camera found. Please connect a camera or use file upload instead.';
+    case CAMERA_ERRORS.NOT_READABLE:
+      return 'Camera is already in use by another application. Please close other apps using the camera.';
+    case CAMERA_ERRORS.OVERCONSTRAINED:
+      return 'Camera does not support the required resolution. Using default settings.';
+    case CAMERA_ERRORS.SECURITY:
+      return 'Camera access blocked for security reasons. Please use HTTPS or localhost.';
+    case CAMERA_ERRORS.ABORT:
+      return 'Camera access was cancelled. Please try again.';
+    default:
+      return `Camera error: ${error.message}. Please try file upload instead.`;
+  }
+};
+
 // ===== IMAGE FILTERS =====
 const applyFilter = (imageSrc, filterType) => {
   const canvas = document.createElement('canvas');
@@ -185,37 +215,181 @@ export function AppProvider({ children }) {
   const [activeFilter, setActiveFilter] = useState('original');
   const [filteredImages, setFilteredImages] = useState({});
 
+  // ===== CAMERA STATE =====
+  const [cameraError, setCameraError] = useState(null);
+  const [cameraPermission, setCameraPermission] = useState('prompt'); // 'granted' | 'denied' | 'prompt'
+  const [torchSupported, setTorchSupported] = useState(false);
+  const [torchEnabled, setTorchEnabled] = useState(false);
+  const streamRef = useRef(null);
+
+  // Check camera permission on mount
+  useEffect(() => {
+    const checkPermission = async () => {
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const result = await navigator.permissions.query({ name: 'camera' });
+          setCameraPermission(result.state);
+
+          result.addEventListener('change', () => {
+            setCameraPermission(result.state);
+          });
+        }
+      } catch (e) {
+        // Permissions API not supported, will check on camera start
+        console.log('Permissions API not supported');
+      }
+    };
+    checkPermission();
+  }, []);
+
+  // Handle device orientation changes
+  useEffect(() => {
+    const handleOrientationChange = () => {
+      // Re-initialize camera if orientation changes while camera is active
+      if (showCamera && streamRef.current) {
+        stopCamera();
+        setTimeout(() => startCamera(), 300);
+      }
+    };
+
+    window.addEventListener('orientationchange', handleOrientationChange);
+    return () => window.removeEventListener('orientationchange', handleOrientationChange);
+  }, [showCamera]);
+
   // ===== CAMERA FUNCTIONS =====
   const startCamera = async () => {
+    setCameraError(null);
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } }
-      });
+      // Check if getUserMedia is supported
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('Camera API not supported in this browser');
+      }
+
+      // Try rear camera first with ideal constraints
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      };
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        // If rear camera fails, try any camera
+        if (err.name === CAMERA_ERRORS.OVERCONSTRAINED || err.name === CAMERA_ERRORS.NOT_FOUND) {
+          console.log('Rear camera not available, trying any camera...');
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+          });
+        } else {
+          throw err;
+        }
+      }
+
+      streamRef.current = stream;
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+
+        // iOS Safari: needs playsInline and muted for autoplay
+        videoRef.current.playsInline = true;
+        videoRef.current.muted = true;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('muted', 'true');
+
+        // Wait for video to be ready
+        await new Promise((resolve, reject) => {
+          videoRef.current.onloadedmetadata = () => {
+            videoRef.current.play().then(resolve).catch(reject);
+          };
+          videoRef.current.onerror = reject;
+          // Timeout fallback
+          setTimeout(resolve, 1000);
+        });
+
+        // Check if torch is supported
+        const track = stream.getVideoTracks()[0];
+        if (track && track.getCapabilities) {
+          const capabilities = track.getCapabilities();
+          setTorchSupported(capabilities.torch || false);
+        }
+
         setShowCamera(true);
+        setCameraPermission('granted');
       }
     } catch (err) {
-      console.error("Error accessing camera:", err);
-      alert("Could not access camera. Please upload a file instead.");
+      console.error('Error accessing camera:', err);
+      setCameraError(getCameraErrorMessage(err));
+
+      if (err.name === CAMERA_ERRORS.NOT_ALLOWED) {
+        setCameraPermission('denied');
+      }
+
+      // Show user-friendly error
+      alert(getCameraErrorMessage(err));
     }
   };
 
   const stopCamera = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = videoRef.current.srcObject.getTracks();
+    if (streamRef.current) {
+      const tracks = streamRef.current.getTracks();
       tracks.forEach(track => track.stop());
-      setShowCamera(false);
+      streamRef.current = null;
+    }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
+    setShowCamera(false);
+    setTorchEnabled(false);
+    setTorchSupported(false);
+  };
+
+  const toggleTorch = async () => {
+    if (!streamRef.current) return;
+
+    const track = streamRef.current.getVideoTracks()[0];
+    if (!track || !track.applyConstraints) return;
+
+    try {
+      const newTorchState = !torchEnabled;
+      await track.applyConstraints({
+        advanced: [{ torch: newTorchState }]
+      });
+      setTorchEnabled(newTorchState);
+    } catch (err) {
+      console.error('Error toggling torch:', err);
+      alert('Flash/Torch not supported on this device');
     }
   };
 
   const captureImage = () => {
-    if (videoRef.current) {
+    if (videoRef.current && videoRef.current.readyState >= 2) {
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
+      canvas.width = videoRef.current.videoWidth || 1920;
+      canvas.height = videoRef.current.videoHeight || 1080;
       const ctx = canvas.getContext('2d');
-      ctx.drawImage(videoRef.current, 0, 0);
+
+      // Handle orientation for mobile devices
+      const orientation = window.screen.orientation?.angle || 0;
+      if (orientation !== 0 && orientation !== 180) {
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate((orientation * Math.PI) / 180);
+        ctx.drawImage(
+          videoRef.current,
+          -canvas.height / 2,
+          -canvas.width / 2,
+          canvas.height,
+          canvas.width
+        );
+      } else {
+        ctx.drawImage(videoRef.current, 0, 0);
+      }
 
       const capturedImage = canvas.toDataURL('image/jpeg', 0.9);
       stopCamera();
@@ -401,6 +575,11 @@ export function AppProvider({ children }) {
     activeFilter,
     filteredImages,
     enableAIEnhancement,
+    // Camera state
+    cameraError,
+    cameraPermission,
+    torchSupported,
+    torchEnabled,
 
     // Setters
     setAppMode,
@@ -422,6 +601,7 @@ export function AppProvider({ children }) {
     // Functions
     startCamera,
     stopCamera,
+    toggleTorch,
     captureImage,
     handleFileUpload,
     applyFilter,

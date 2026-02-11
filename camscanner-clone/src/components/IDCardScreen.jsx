@@ -15,6 +15,9 @@ export function IDCardScreen() {
     videoRef,
     startCamera,
     stopCamera,
+    toggleTorch,
+    torchSupported,
+    torchEnabled,
     captureImage,
     handleFileUpload,
     combineIDCardImages,
@@ -72,16 +75,38 @@ export function IDCardScreen() {
       {/* Camera / Capture Area */}
       {showCamera ? (
         <div className="fixed inset-0 bg-black z-50 flex flex-col">
-          <video ref={videoRef} autoPlay playsInline className="flex-1 object-cover w-full h-full"></video>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="flex-1 object-cover w-full h-full"
+          ></video>
           <div className="absolute top-4 left-0 right-0 flex justify-center">
             <div className="bg-black/50 text-white px-4 py-2 rounded-full text-sm">
               Capture {idCard.step === 'front' ? 'FRONT' : 'BACK'} side
             </div>
           </div>
-          <div className="absolute bottom-0 w-full p-6 flex justify-between items-center bg-gradient-to-t from-black/50 to-transparent">
-            <button onClick={stopCamera} className="text-white p-2">Cancel</button>
-            <button onClick={captureImage} className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 active:scale-95 transition-transform"></button>
-            <div className="w-10"></div>
+          <div className="absolute bottom-0 w-full p-6 flex justify-between items-center bg-gradient-to-t from-black/50 to-transparent safe-area-bottom">
+            <button onClick={stopCamera} className="text-white p-2 font-medium active:scale-95 transition-transform">Cancel</button>
+            <button
+              onClick={captureImage}
+              className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 active:scale-95 transition-transform shadow-lg"
+              aria-label="Capture photo"
+            ></button>
+            {torchSupported ? (
+              <button
+                onClick={toggleTorch}
+                className={`p-3 rounded-full transition-colors ${torchEnabled ? 'bg-yellow-400 text-black' : 'bg-white/20 text-white'}`}
+                aria-label={torchEnabled ? 'Turn off flash' : 'Turn on flash'}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </button>
+            ) : (
+              <div className="w-10"></div>
+            )}
           </div>
         </div>
       ) : (

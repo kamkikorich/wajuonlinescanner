@@ -80,7 +80,14 @@ export default defineConfig({
   server: {
     // Enable HTTPS for PWA testing (service workers require HTTPS or localhost)
     https: false,
-    host: true,
-    port: 5173
+    host: true, // Listen on all local IPs
+    port: 5173,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:5000',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   }
 })

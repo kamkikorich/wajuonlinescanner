@@ -2,11 +2,12 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <!-- Single viewport meta tag combining all attributes -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="description" content="Scan documents and ID cards with OCR, filters, and PDF export. A Progressive Web App for mobile scanning." />
     <meta name="theme-color" content="#2563eb" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Waju Scanner" />
     <meta name="application-name" content="Waju Scanner" />
 
@@ -18,11 +19,8 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png" />
     <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
 
-    <!-- Prevent zooming on mobile -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-
-    <!-- Safe area insets for notched devices -->
-    <meta name="viewport" content="viewport-fit=cover" />
+    <!-- iOS-specific: Allow camera access in standalone mode -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
 
     <!-- Preconnect to API -->
     <link rel="preconnect" href="https://api.deepseek.com" />

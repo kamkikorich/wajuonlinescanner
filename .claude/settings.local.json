@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(if not exist \"docs\\\\plans\" mkdir \"docs\\\\plans\")",
-      "Bash(npm run build)"
+      "Bash(npm run build)",
+      "Skill(pr-review-toolkit:review-pr)"
     ]
   }
 }
