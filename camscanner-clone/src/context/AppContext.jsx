@@ -17,19 +17,32 @@ const CAMERA_ERRORS = {
   ABORT: 'AbortError',
 };
 
+// Detect mobile (touch device / small screen) for clearer error messages
+const isMobileDevice = () =>
+  typeof navigator !== 'undefined' &&
+  (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+   (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
+
 // Get user-friendly error message
 const getCameraErrorMessage = (error) => {
+  const onMobile = isMobileDevice();
   switch (error.name) {
     case CAMERA_ERRORS.NOT_ALLOWED:
-      return 'Camera access denied. Please allow camera access in your browser settings and try again.';
+      return onMobile
+        ? 'Kamera tidak dibenarkan. Sila benarkan kamera untuk laman ini dalam Tetapan pelayar (ikon kunci/lokasi di bar alamat), atau gunakan muat naik fail.'
+        : 'Camera access denied. Please allow camera access in your browser settings and try again.';
     case CAMERA_ERRORS.NOT_FOUND:
-      return 'No camera found. Check that a camera is connected and allowed in your browser or OS settings, or use file upload instead.';
+      return onMobile
+        ? 'Kamera tidak dikesan. Pastikan kebenaran kamera dibenarkan untuk laman ini (Tetapan pelayar), atau cuba buka pautan dalam Safari/Chrome dan bukannya dari ikon rumah. Guna muat naik jika perlu.'
+        : 'No camera found. Check that a camera is connected and allowed in your browser or OS settings, or use file upload instead.';
     case CAMERA_ERRORS.NOT_READABLE:
       return 'Camera is already in use by another application. Please close other apps using the camera.';
     case CAMERA_ERRORS.OVERCONSTRAINED:
       return 'Camera does not support the required resolution. Using default settings.';
     case CAMERA_ERRORS.SECURITY:
-      return 'Camera access blocked for security reasons. Please use HTTPS or localhost.';
+      return onMobile
+        ? 'Kamera memerlukan HTTPS. Pastikan anda buka laman melalui pautan https:// (bukan http://).'
+        : 'Camera access blocked for security reasons. Please use HTTPS or localhost.';
     case CAMERA_ERRORS.ABORT:
       return 'Camera access was cancelled. Please try again.';
     default:

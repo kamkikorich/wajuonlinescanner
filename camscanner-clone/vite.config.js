@@ -15,6 +15,8 @@ export default defineConfig({
         description: 'Scan documents and ID cards with OCR, filters, and PDF export',
         theme_color: '#2563eb',
         background_color: '#f9fafb',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
