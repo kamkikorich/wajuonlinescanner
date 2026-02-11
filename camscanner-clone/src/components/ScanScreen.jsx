@@ -197,15 +197,21 @@ export function ScanScreen() {
             autoPlay
             playsInline
             muted
-            className="flex-1 object-cover w-full h-full"
+            className="flex-1 object-cover w-full h-full min-h-0"
           ></video>
-          <div className="absolute bottom-0 w-full p-6 flex justify-between items-center bg-gradient-to-t from-black/50 to-transparent safe-area-bottom">
-            <button onClick={stopCamera} className="text-white p-2 font-medium active:scale-95 transition-transform">Cancel</button>
+          <p className="absolute top-4 left-4 right-4 text-center text-white text-sm drop-shadow-lg z-10">
+            Arahkan ke dokumen → tekan butang putih di bawah untuk ambil gambar
+          </p>
+          <div className="absolute bottom-0 w-full p-6 flex justify-between items-center bg-gradient-to-t from-black/60 to-transparent safe-area-bottom">
+            <button onClick={stopCamera} className="text-white p-2 font-medium active:scale-95 transition-transform">Batal</button>
             <button
               onClick={captureImage}
-              className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 active:scale-95 transition-transform shadow-lg"
-              aria-label="Capture photo"
-            ></button>
+              className="flex flex-col items-center gap-1 active:scale-95 transition-transform"
+              aria-label="Ambil gambar"
+            >
+              <span className="w-16 h-16 bg-white rounded-full border-4 border-gray-300 shadow-lg block" />
+              <span className="text-white text-xs font-medium">Ambil</span>
+            </button>
             {torchSupported ? (
               <button
                 onClick={toggleTorch}

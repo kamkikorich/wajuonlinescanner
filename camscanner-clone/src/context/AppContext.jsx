@@ -293,60 +293,57 @@ export function AppProvider({ children }) {
         throw err;
       }
 
-      // Prefer rear camera + higher res on devices that support it (e.g. mobile)
-      try {
-        const better = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: 'environment' },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          },
-          audio: false
-        });
-        stream.getTracks().forEach((t) => t.stop());
-        stream = better;
-      } catch (_) {
-        // Keep current stream
+      // On desktop, optionally prefer rear camera + higher res; skip on mobile to avoid
+      // double request and stream flicker that can make preview disappear
+      if (!isMobileDevice()) {
+        try {
+          const better = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: { ideal: 'environment' },
+              width: { ideal: 1920 },
+              height: { ideal: 1080 }
+            },
+            audio: false
+          });
+          stream.getTracks().forEach((t) => t.stop());
+          stream = better;
+        } catch (_) {
+          // Keep current stream
+        }
       }
 
       streamRef.current = stream;
 
-      // Now show camera UI and attach stream to video element
+      // Show camera UI first so the video element exists when we attach the stream
       setShowCamera(true);
 
-      // Wait for React to render the video element
-      await new Promise(resolve => setTimeout(resolve, 100));
+      // Wait for React to render the video element (longer on mobile)
+      const waitMs = isMobileDevice() ? 250 : 100;
+      await new Promise(resolve => setTimeout(resolve, waitMs));
+
+      const attachStreamToVideo = (video) => {
+        if (!video || !stream) return;
+        video.srcObject = stream;
+        video.playsInline = true;
+        video.muted = true;
+        video.setAttribute('playsinline', 'true');
+        video.setAttribute('muted', 'true');
+        video.play().catch(() => {});
+      };
 
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.playsInline = true;
-        videoRef.current.muted = true;
-        videoRef.current.setAttribute('playsinline', 'true');
-        videoRef.current.setAttribute('muted', 'true');
-
-        await new Promise((resolve, reject) => {
-          videoRef.current.onloadedmetadata = () => {
-            videoRef.current.play().then(resolve).catch(reject);
-          };
-          videoRef.current.onerror = reject;
-          setTimeout(resolve, 1000);
-        });
-
+        attachStreamToVideo(videoRef.current);
+        // Do NOT throw if play() fails – keep camera visible; stream often still shows on mobile
+        await new Promise(resolve => setTimeout(resolve, 500));
         const track = stream.getVideoTracks()[0];
         if (track && track.getCapabilities) {
           const capabilities = track.getCapabilities();
           setTorchSupported(capabilities.torch || false);
         }
-
         setCameraPermission('granted');
       } else {
-        await new Promise(resolve => setTimeout(resolve, 150));
-        if (videoRef.current) {
-          videoRef.current.srcObject = stream;
-          videoRef.current.playsInline = true;
-          videoRef.current.muted = true;
-          await videoRef.current.play().catch(() => {});
-        }
+        await new Promise(resolve => setTimeout(resolve, 200));
+        if (videoRef.current) attachStreamToVideo(videoRef.current);
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
