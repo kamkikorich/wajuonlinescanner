@@ -79,7 +79,8 @@ export default defineConfig({
   ],
   server: {
     // Enable HTTPS for PWA testing (service workers require HTTPS or localhost)
-    https: false,
+    // Camera API also requires HTTPS for non-localhost access
+    https: true,
     host: true, // Listen on all local IPs
     port: 5173,
     proxy: {

@@ -9,6 +9,10 @@
   NODE_VERSION = "20"
   NPM_VERSION = "10"
 
+# Functions directory configuration
+[functions]
+  directory = "netlify/api"
+
 # Redirect API calls to serverless functions
 [[redirects]]
   from = "/api/*"

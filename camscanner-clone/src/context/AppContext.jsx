@@ -266,6 +266,13 @@ export function AppProvider({ children }) {
         throw new Error('Camera API not supported in this browser');
       }
 
+      // IMPORTANT: Set showCamera to TRUE first so the video element is rendered
+      // This fixes the race condition where videoRef.current is null
+      setShowCamera(true);
+
+      // Wait for next tick to ensure React has rendered the video element
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       // Try rear camera first with ideal constraints
       const constraints = {
         video: {
@@ -294,6 +301,7 @@ export function AppProvider({ children }) {
 
       streamRef.current = stream;
 
+      // Now video element should exist since showCamera is true
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
 
@@ -320,12 +328,21 @@ export function AppProvider({ children }) {
           setTorchSupported(capabilities.torch || false);
         }
 
-        setShowCamera(true);
         setCameraPermission('granted');
+      } else {
+        // If videoRef is still null, something went wrong
+        console.warn('Video element not available after setting showCamera');
+        // Try once more after a longer delay
+        await new Promise(resolve => setTimeout(resolve, 100));
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          await videoRef.current.play().catch(() => {});
+        }
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
       setCameraError(getCameraErrorMessage(err));
+      setShowCamera(false); // Hide camera UI on error
 
       if (err.name === CAMERA_ERRORS.NOT_ALLOWED) {
         setCameraPermission('denied');

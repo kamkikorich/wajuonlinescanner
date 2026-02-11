@@ -34,6 +34,18 @@ function checkRateLimit(identifier) {
 }
 
 exports.handler = async (event, context) => {
+  // Handle OPTIONS requests for CORS preflight
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 204,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type'
+      }
+    };
+  }
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     return {
@@ -55,7 +67,20 @@ exports.handler = async (event, context) => {
   }
 
   // Get client identifier for rate limiting
-  const clientId = context.clientContext?.user?.sub || event.headers['client-ip'] || 'anonymous';
+  // Netlify uses x-nf-client-connection-ip or x-forwarded-for for client IP
+  const clientId = context.clientContext?.user?.sub || event.headers['x-nf-client-connection-ip'] || event.headers['x-forwarded-for'] || event.headers['client-ip'] || 'anonymous';
+
+  // Parse request body once and store it
+  let requestBody;
+  try {
+    requestBody = JSON.parse(event.body);
+  } catch (parseError) {
+    return {
+      statusCode: 400,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ error: 'Invalid JSON in request body' })
+    };
+  }
 
   // Check rate limit
   const rateLimit = checkRateLimit(clientId);
@@ -75,7 +100,7 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    const { text, language = 'eng' } = JSON.parse(event.body);
+    const { text, language = 'eng' } = requestBody;
 
     // Validate input
     if (!text || typeof text !== 'string') {
@@ -153,7 +178,7 @@ exports.handler = async (event, context) => {
   } catch (error) {
     console.error('DeepSeek API Error:', error.response?.data || error.message);
 
-    // Return a graceful fallback
+    // Return a graceful fallback using the pre-parsed request body
     return {
       statusCode: 200,
       headers: {
@@ -161,21 +186,10 @@ exports.handler = async (event, context) => {
         'Access-Control-Allow-Origin': '*'
       },
       body: JSON.stringify({
-        text: JSON.parse(event.body).text,
+        text: requestBody?.text || '',
         enhanced: false,
         error: 'AI enhancement failed. Using original OCR text.'
       })
     };
   }
 };
-
-// Handle OPTIONS requests for CORS
-exports.handler.method = 'POST';
-exports.handler.options = async () => ({
-  statusCode: 204,
-  headers: {
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type'
-  }
-});
