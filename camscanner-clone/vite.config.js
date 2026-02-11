@@ -9,6 +9,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       filename: 'sw.js',
+      selfDestroying: true, // Help clean up old service workers
       includeAssets: ['vite.svg', '*.png', '*.jpg'],
       manifest: {
         name: 'Waju Scanner - Document & ID Card Scanner',

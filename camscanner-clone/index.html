@@ -6,21 +6,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="description" content="Scan documents and ID cards with OCR, filters, and PDF export. A Progressive Web App for mobile scanning." />
     <meta name="theme-color" content="#2563eb" />
+    <!-- iOS PWA support -->
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Waju Scanner" />
     <meta name="application-name" content="Waju Scanner" />
 
-    <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json" />
+    <!-- PWA Manifest (vite-pwa generates .webmanifest) -->
+    <link rel="manifest" href="/manifest.webmanifest" />
 
     <!-- Icons -->
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/icon-192x192.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
-
-    <!-- iOS-specific: Allow camera access in standalone mode -->
-    <meta name="apple-mobile-web-app-capable" content="yes" />
 
     <!-- Preconnect to API -->
     <link rel="preconnect" href="https://api.deepseek.com" />
