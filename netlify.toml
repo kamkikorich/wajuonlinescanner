@@ -19,7 +19,25 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# SPA fallback for PWA
+# SPA fallback for PWA - exclude vite-pwa files
+[[redirects]]
+  from = "/sw.js"
+  to = "/sw.js"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/manifest.webmanifest"
+  to = "/manifest.webmanifest"
+  status = 200
+  force = false
+
+[[redirects]]
+  from = "/workbox-*.js"
+  to = "/workbox-*.js"
+  status = 200
+  force = false
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
@@ -66,12 +84,17 @@
 
 # Service worker and manifest
 [[headers]]
-  for = "/service-worker.js"
+  for = "/sw.js"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 
 [[headers]]
-  for = "/manifest.json"
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+[[headers]]
+  for = "/workbox-*.js"
   [headers.values]
     Cache-Control = "public, max-age=0, must-revalidate"
 

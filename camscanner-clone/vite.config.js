@@ -8,6 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      filename: 'sw.js',
       includeAssets: ['vite.svg', '*.png', '*.jpg'],
       manifest: {
         name: 'Waju Scanner - Document & ID Card Scanner',
@@ -18,35 +19,8 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        orientation: 'portrait',
-        icons: [
-          {
-            src: 'icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png'
-          },
-          {
-            src: 'icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png'
-          }
-        ],
-        shortcuts: [
-          {
-            name: 'Scan Document',
-            short_name: 'Document',
-            description: 'Start scanning a multi-page document',
-            url: '/?mode=document',
-            icons: [{ src: 'icon-192x192.png', sizes: '192x192' }]
-          },
-          {
-            name: 'Scan ID Card',
-            short_name: 'ID Card',
-            description: 'Start scanning an ID card (front & back)',
-            url: '/?mode=idcard',
-            icons: [{ src: 'icon-192x192.png', sizes: '192x192' }]
-          }
-        ]
+        orientation: 'portrait'
+        // Icons removed - need to add icon files to public folder
       },
       workbox: {
         runtimeCaching: [
