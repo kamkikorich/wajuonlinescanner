@@ -3,7 +3,9 @@
     "allow": [
       "Bash(if not exist \"docs\\\\plans\" mkdir \"docs\\\\plans\")",
       "Bash(npm run build)",
-      "Skill(pr-review-toolkit:review-pr)"
+      "Skill(pr-review-toolkit:review-pr)",
+      "WebFetch(domain:wajuscanner.netlify.app)",
+      "mcp__plugin_exa-mcp-server_exa__web_search_exa"
     ]
   }
 }

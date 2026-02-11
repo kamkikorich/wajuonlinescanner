@@ -274,87 +274,83 @@ export function AppProvider({ children }) {
     setCameraError(null);
 
     try {
-      // Secure context required: camera only works over HTTPS or localhost
+      // 1. Secure context check
       if (typeof window !== 'undefined' && !window.isSecureContext) {
-        throw Object.assign(new Error('Secure context required'), { name: CAMERA_ERRORS.SECURITY });
+        throw Object.assign(new Error('Secure context required (HTTPS)'), { name: CAMERA_ERRORS.SECURITY });
       }
 
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('Camera API not supported in this browser');
       }
 
-      // CRITICAL: Call getUserMedia immediately while the button click is still the "user gesture".
-      // Request with minimal constraints first so desktop (no "environment" camera) and strict
-      // devices don't get NotFoundError; then prefer better quality if available.
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-      } catch (err) {
-        throw err;
+      // 2. Stop existing stream if any
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
       }
 
-      // On desktop, optionally prefer rear camera + higher res; skip on mobile to avoid
-      // double request and stream flicker that can make preview disappear
-      if (!isMobileDevice()) {
-        try {
-          const better = await navigator.mediaDevices.getUserMedia({
-            video: {
-              facingMode: { ideal: 'environment' },
-              width: { ideal: 1920 },
-              height: { ideal: 1080 }
-            },
-            audio: false
-          });
-          stream.getTracks().forEach((t) => t.stop());
-          stream = better;
-        } catch (_) {
-          // Keep current stream
-        }
+      // 3. Show UI first so videoRef is available
+      setShowCamera(true);
+
+      // Critical: Wait for React to mount the <video> element
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // 4. Try to get Rear Camera (Environment) with fallback
+      const constraints = {
+        video: {
+          facingMode: { ideal: 'environment' },
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        },
+        audio: false
+      };
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (e) {
+        console.warn('Failed to get ideal constraints, trying basic video', e);
+        // Fallback to any camera if environment/high-res fails
+        stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       }
 
       streamRef.current = stream;
 
-      // Show camera UI first so the video element exists when we attach the stream
-      setShowCamera(true);
-
-      // Wait for React to render the video element (longer on mobile)
-      const waitMs = isMobileDevice() ? 250 : 100;
-      await new Promise(resolve => setTimeout(resolve, waitMs));
-
-      const attachStreamToVideo = (video) => {
-        if (!video || !stream) return;
-        video.srcObject = stream;
-        video.playsInline = true;
-        video.muted = true;
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('muted', 'true');
-        video.play().catch(() => {});
-      };
-
+      // 5. Attach stream to video element
       if (videoRef.current) {
-        attachStreamToVideo(videoRef.current);
-        // Do NOT throw if play() fails – keep camera visible; stream often still shows on mobile
-        await new Promise(resolve => setTimeout(resolve, 500));
+        videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.setAttribute('muted', 'true');
+
+        // Use a promise to handle play() properly
+        try {
+          await videoRef.current.play();
+        } catch (playErr) {
+          console.error("Video play failed:", playErr);
+          // On some Androids, we might need a manual play trigger
+        }
+
+        // 6. Detect Torch/Flash support
         const track = stream.getVideoTracks()[0];
         if (track && track.getCapabilities) {
           const capabilities = track.getCapabilities();
-          setTorchSupported(capabilities.torch || false);
+          setTorchSupported(!!capabilities.torch);
         }
+
         setCameraPermission('granted');
       } else {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        if (videoRef.current) attachStreamToVideo(videoRef.current);
+        throw new Error('Video element not ready');
       }
     } catch (err) {
       console.error('Error accessing camera:', err);
-      setCameraError(getCameraErrorMessage(err));
+      const errMsg = getCameraErrorMessage(err);
+      setCameraError(errMsg);
       setShowCamera(false);
 
       if (err.name === CAMERA_ERRORS.NOT_ALLOWED) {
         setCameraPermission('denied');
       }
 
-      alert(getCameraErrorMessage(err));
+      alert(errMsg);
     }
   };
 
@@ -386,32 +382,22 @@ export function AppProvider({ children }) {
       setTorchEnabled(newTorchState);
     } catch (err) {
       console.error('Error toggling torch:', err);
-      alert('Flash/Torch not supported on this device');
+      alert('Flash/Torch tidak disokong pada peranti ini atau mod ini.');
     }
   };
 
   const captureImage = () => {
     if (videoRef.current && videoRef.current.readyState >= 2) {
       const canvas = document.createElement('canvas');
-      canvas.width = videoRef.current.videoWidth || 1920;
-      canvas.height = videoRef.current.videoHeight || 1080;
+
+      // Use actual video dimensions
+      canvas.width = videoRef.current.videoWidth;
+      canvas.height = videoRef.current.videoHeight;
+
       const ctx = canvas.getContext('2d');
 
-      // Handle orientation for mobile devices
-      const orientation = window.screen.orientation?.angle || 0;
-      if (orientation !== 0 && orientation !== 180) {
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((orientation * Math.PI) / 180);
-        ctx.drawImage(
-          videoRef.current,
-          -canvas.height / 2,
-          -canvas.width / 2,
-          canvas.height,
-          canvas.width
-        );
-      } else {
-        ctx.drawImage(videoRef.current, 0, 0);
-      }
+      // Draw the video frame to canvas
+      ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
 
       const capturedImage = canvas.toDataURL('image/jpeg', 0.9);
       stopCamera();
@@ -426,6 +412,8 @@ export function AppProvider({ children }) {
           setIdCard({ ...idCard, back: capturedImage });
         }
       }
+    } else {
+      alert("Kamera belum sedia. Sila tunggu sebentar.");
     }
   };
 
